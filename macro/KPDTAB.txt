@@ -1,0 +1,2 @@
+11	E	AREG
+12	O	DREG

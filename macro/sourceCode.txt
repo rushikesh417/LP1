@@ -1,0 +1,7 @@
+
+ONE &O, &N, &E=AREG 
+MOVER &E, &O 
+ADD &E, &N 
+MOVEM &E, &O 
+MEND 
+
