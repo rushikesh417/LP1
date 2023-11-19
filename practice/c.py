@@ -12,4 +12,4 @@ while(True):
     if (n == 3):
         break     
     if (n>2 or n<1):
-        print ("Invalid input ")
+        print ("Invalid input")
