@@ -1,0 +1,42 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+train_df = pd.read_csv('/content/drive/MyDrive/DL_Datasets/Assignment_3/fashion_mnist/fashion-mnist_test.csv')
+test_df = pd.read_csv('/content/drive/MyDrive/DL_Datasets/Assignment_3/fashion_mnist/fashion-mnist_train.csv')
+
+y_train = train_df.iloc[:, 0].values
+x_train = train_df.iloc[:, 1:].values
+y_test = test_df.iloc[:, 0].values
+x_test = test_df.iloc[:, 1:].values
+
+x_train, x_test = x_train / 255.0, x_test / 255.0
+x_train = x_train.reshape(-1, 28, 28, 1)
+x_test = x_test.reshape(-1, 28, 28, 1)
+class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
+model = models.Sequential([
+    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+model.fit(x_train, y_train, epochs=5)
+
+loss, acc = model.evaluate(x_test, y_test)
+print(loss)
+print(acc)
+
+predictions = model.predict(x_test)
+plt.figure()
+plt.imshow(x_test[1].reshape(28, 28), cmap=plt.cm.binary)
+plt.title(f"Prediction: {class_names[np.argmax(predictions[1])]} | True: {class_names[y_test[1]]}")
+plt.show()
