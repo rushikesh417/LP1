@@ -39,37 +39,77 @@ print("Actual Prices:", y_test[:5])
 
 import numpy as np
 import pandas as pd
-from tensorflow.keras.datasets import imdb
-(train_data, train_label), (test_data, test_label) = imdb.load_data(num_words = 10000)
-def vectorize_sequences(sequences, dimensions = 10000):
-  results = np.zeros((len(sequences), dimensions))
-  for i,sequences in enumerate(sequences):
-    results[i, sequences] = 1
-  return results
 
-x_train = vectorize_sequences(train_data)
-x_test = vectorize_sequences(test_data)
+df = pd.read_csv("/content/IMDB Dataset.csv")
+df.head()
+ 
+df['sentiment'] = df['sentiment'].map({'positive': 1, 'negative': 0})
 
-y_train = np.asarray(train_label).astype('float32')
-y_test = np.asarray(test_label).astype('float32')
 
+df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+
+
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+max_words = 10000  # Use top 10,000 words
+maxlen = 200       # Max review length
+
+tokenizer = Tokenizer(num_words=max_words)
+tokenizer.fit_on_texts(df['review'])
+
+sequences = tokenizer.texts_to_sequences(df['review'])
+x_data = pad_sequences(sequences, maxlen=maxlen)
+y_data = df['sentiment'].values
+
+
+# Step 4: Train-test split
+from sklearn.model_selection import train_test_split
+
+x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
+
+# Step 5: Build the deep neural network model
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Embedding, Flatten
 
 model = Sequential()
-model.add(Dense(16, input_shape=(10000, ), activation = "relu"))
-model.add(Dense(16, activation = "relu"))
-model.add(Dense(1, activation = "sigmoid"))
+model.add(Embedding(max_words, 32, input_length=maxlen))
+model.add(Flatten())
+model.add(Dense(64, activation='relu'))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))  # Binary classification
 
-model.compile(optimizer='adam', loss = 'mse', metrics = ['accuracy'])
+# Step 6: Compile the model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.summary()
 
-history = model.fit(x_train ,y_train ,epochs=50)
+# Step 7: Train the model
+history = model.fit(x_train, y_train, epochs=5, batch_size=512, validation_split=0.2)
 
-metrics =  model.evaluate(x_test , y_test)
-
+# Step 9: Make predictions on sample reviews
 predictions = model.predict(x_test[:5])
-print("Predicted Sentiments:", ['Positive' if p > 0.5 else 'Negative' for p in predictions])
-print("Actual Sentiments:", ['Positive' if l == 1 else 'Negative' for l in y_test[:5]])
+print("Predicted:", ['Positive' if p > 0.5 else 'Negative' for p in predictions])
+print("Actual:", ['Positive' if l == 1 else 'Negative' for l in y_test[:5]])
+
+# Step 10: Plot training history
+import matplotlib.pyplot as plt
+
+plt.plot(history.history['accuracy'], label='Train Acc')
+plt.plot(history.history['val_accuracy'], label='Val Acc')
+plt.title('Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
+
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Val Loss')
+plt.title('Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 
