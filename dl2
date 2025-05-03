@@ -1,0 +1,72 @@
+import numpy as np
+import pandas as pd
+
+df = pd.read_csv("/content/IMDB Dataset.csv")
+df.head()
+ 
+df['sentiment'] = df['sentiment'].map({'positive': 1, 'negative': 0})
+
+
+df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+
+
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+max_words = 10000  # Use top 10,000 words
+maxlen = 200       # Max review length
+
+tokenizer = Tokenizer(num_words=max_words)
+tokenizer.fit_on_texts(df['review'])
+
+sequences = tokenizer.texts_to_sequences(df['review'])
+x_data = pad_sequences(sequences, maxlen=maxlen)
+y_data = df['sentiment'].values
+
+
+# Step 4: Train-test split
+from sklearn.model_selection import train_test_split
+
+x_train, x_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
+
+# Step 5: Build the deep neural network model
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Embedding, Flatten
+
+model = Sequential()
+model.add(Embedding(max_words, 32, input_length=maxlen))
+model.add(Flatten())
+model.add(Dense(64, activation='relu'))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))  # Binary classification
+
+# Step 6: Compile the model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+model.summary()
+
+# Step 7: Train the model
+history = model.fit(x_train, y_train, epochs=5, batch_size=512, validation_split=0.2)
+
+# Step 9: Make predictions on sample reviews
+predictions = model.predict(x_test[:5])
+print("Predicted:", ['Positive' if p > 0.5 else 'Negative' for p in predictions])
+print("Actual:", ['Positive' if l == 1 else 'Negative' for l in y_test[:5]])
+
+# Step 10: Plot training history
+import matplotlib.pyplot as plt
+
+plt.plot(history.history['accuracy'], label='Train Acc')
+plt.plot(history.history['val_accuracy'], label='Val Acc')
+plt.title('Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
+
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Val Loss')
+plt.title('Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
